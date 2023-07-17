@@ -1,4 +1,12 @@
 // this is a comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
+"test string"
+"
+multi
+line 
+string
+"
+1
+1.11
 

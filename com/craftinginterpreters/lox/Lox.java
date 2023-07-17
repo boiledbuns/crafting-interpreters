@@ -52,6 +52,10 @@ public class Lox {
         }
     }
 
+    static void debug(String message) { 
+        System.out.println(message);
+    } 
+
     static void error(int line, String message) { 
         report(line, "", message);
     }

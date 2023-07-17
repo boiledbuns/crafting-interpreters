@@ -8,10 +8,12 @@ import java.util.Map;
 import static com.craftinginterpreters.lox.TokenType.*; 
 
 class Scanner {
+    private static final char NEW_LINE = '\n';
+
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
     private int start = 0;
-    // position of the cursor (on top of next undread item)
+    // position of the cursor (on top of next unread item)
     private int current = 0;
     private int line = 1;
 
@@ -19,12 +21,12 @@ class Scanner {
         this.source = source;
     }
 
-    private boolean isAtEnd() {
-        return current >= source.length();
+    private boolean isAtEnd(int position) {
+        return position >= source.length();
     }
 
     List<Token> scanTokens() { 
-        while (!isAtEnd()) {
+        while (!isAtEnd(current)) {
             // We are at the beginning of the next lexeme.
             start = current;
             scanToken();
@@ -62,13 +64,15 @@ class Scanner {
             case '/':
                       // comments are meaningless, so do not create token for them
                       if (match('/')) { 
-                          while (peek() != '\n' && !isAtEnd()) {
+                          while (peek() != '\n' && !isAtEnd(current)) {
                               advance();
                           }
+                          advance();
                       } else { 
                           addToken(SLASH);
                       }
                       break;
+            // java switch moment
             case ' ':
             case '\r':
             case '\t':
@@ -77,15 +81,29 @@ class Scanner {
             case '\n':
                       line++;
                       break;
+            case '"':
+                      handleString();
+                      break;
             default:
-                      Lox.error(line, String.format("Unexpected character %s:", c));
+                      if (isDigit(c)) { 
+                          handleNumber();
+                      } else { 
+                          Lox.error(line, String.format("Unexpected character %s:", c));
+                      }
                       break;
         }
     }
 
+
     private char peek() { 
-        if (isAtEnd()) return '\0';
-        return source.charAt(current);
+        return peek(0);
+    }
+
+    // peeks `i` chars ahead of current (cursor)
+    private char peek(int i) { 
+        int peekPosition = current + i;
+        if (isAtEnd(peekPosition)) return '\0';
+        return source.charAt(peekPosition);
     }
 
     private char advance() {
@@ -104,11 +122,60 @@ class Scanner {
 
     // advances char iff it matches expected
     private boolean match(char expected) { 
-        if (isAtEnd()) return false;
+        if (isAtEnd(current)) return false;
         if (source.charAt(current) != expected) return false;
 
         current++;
         return true;
+    }
+
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    // REGION handlers
+
+    private void handleString() { 
+        // TODO handle escape sequences
+        while (peek() != '"') { 
+            if (isAtEnd(current)) { 
+                Lox.error(line, "Unterminated String.");
+                return;
+            }
+
+            char currChar = peek();
+            if (currChar == NEW_LINE) { 
+                line++;
+            }
+
+            advance();
+        }
+
+        advance(); // advance for the closing quote
+
+        String stringLiteral = source.substring(start + 1, current - 1);
+        addToken(STRING, stringLiteral);
+    }
+
+    // currenty supports integer and float representation 
+    // ie. 9 or 9.0
+    private void handleNumber() { 
+        while(isDigit(peek())) advance();
+
+        if (peek() == '.' && isDigit(peek(1)))  {
+            // advance past the period before chewing thru the rest of the digits
+            advance();
+            while(isDigit(peek())) advance();
+        }
+    
+        Double literalVal = Double.parseDouble(source.substring(start, current));
+        addToken(NUMBER, literalVal);
+    }
+
+
+    // helper
+    private void debug() {
+        Lox.debug(String.format("Current: %s, peek; %s", current, peek()));
     }
 }
 
