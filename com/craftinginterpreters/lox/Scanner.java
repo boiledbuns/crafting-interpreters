@@ -16,6 +16,27 @@ class Scanner {
     // position of the cursor (on top of next unread item)
     private int current = 0;
     private int line = 1;
+    private static final Map<String, TokenType> reservedKeywords; 
+
+    static {
+        reservedKeywords = new HashMap<>();
+        reservedKeywords.put("and",    AND);
+        reservedKeywords.put("class",  CLASS);
+        reservedKeywords.put("else",   ELSE);
+        reservedKeywords.put("false",  FALSE);
+        reservedKeywords.put("for",    FOR);
+        reservedKeywords.put("fun",    FUN);
+        reservedKeywords.put("if",     IF);
+        reservedKeywords.put("nil",    NIL);
+        reservedKeywords.put("or",     OR);
+        reservedKeywords.put("print",  PRINT);
+        reservedKeywords.put("return", RETURN);
+        reservedKeywords.put("super",  SUPER);
+        reservedKeywords.put("this",   THIS);
+        reservedKeywords.put("true",   TRUE);
+        reservedKeywords.put("var",    VAR);
+        reservedKeywords.put("while",  WHILE);
+    }
 
     Scanner(String source) {
         this.source = source;
@@ -87,6 +108,8 @@ class Scanner {
             default:
                       if (isDigit(c)) { 
                           handleNumber();
+                      } else if (isAlphaNumeric(c)) { 
+                          handleIdentifier();
                       } else { 
                           Lox.error(line, String.format("Unexpected character %s:", c));
                       }
@@ -133,6 +156,16 @@ class Scanner {
         return c >= '0' && c <= '9';
     }
 
+    private boolean isAlpha(char c) {
+        return (c >= 'a' && c <= 'z') ||
+            (c >= 'A' && c <= 'Z') || 
+            (c == '_');
+    }
+    
+    private boolean isAlphaNumeric(char c) {
+        return isAlpha(c) || isDigit(c);
+    }
+
     // REGION handlers
 
     private void handleString() { 
@@ -172,6 +205,22 @@ class Scanner {
         addToken(NUMBER, literalVal);
     }
 
+    private void handleIdentifier() { 
+        while(isAlphaNumeric(peek())) advance();
+
+        String lexeme = source.substring(start, current);
+        TokenType token = reservedKeywords.get(lexeme);
+
+        
+        if (token == null) { 
+            // not a reserved keyword
+            addToken(IDENTIFIER);
+        } else { 
+            // reserved keyword
+            addToken(token);
+        }
+        
+    }
 
     // helper
     private void debug() {

@@ -10,3 +10,7 @@ string
 1
 1.11
 
+// variables cannot begin with numbers
+var 123vim = "hello"
+
+var v1123im = "should wonk"
